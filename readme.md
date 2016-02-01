@@ -26,7 +26,9 @@ The ngResourceMock is implemented in the form of a decorator on the ```$resource
 The api is similar to the API of the ```$httpBackend```. The mock adds following methods to the resource service/instance:
 * ```whenAction``` - e.g. (```whenSave```, ```whenQuery```, etc.) creates when expectation. Accepts two arguments that are interpreted - the same way they would be interpreted on a real action call - as either request parameters or the post data. The arguments serve as patterns that the requests are matched against. If argument is falsy the expectation matches requests regardless. To check against null or undefined values please use the null and undefined fields of the resource eg.
 
-  ```MockedResource.whenSave(MockedResource.null)```
+  ```javascript
+  MockedResource.whenSave(MockedResource.null)
+  ```
 
   The call returns an object with following methods:
   * ```resolve(data)``` - resolves the request with given data
