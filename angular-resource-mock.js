@@ -200,10 +200,10 @@
 					result.$resolved = true;
 					this.resolved = true;
 					if (success) {
-						deferred.reject(result);
+						deferred.resolve(result);
 						callback = successCallback;
 					} else {
-						deferred.resolve(result);
+						deferred.reject(result);
 						callback = errorCallback;
 					}
 					if (callback) {

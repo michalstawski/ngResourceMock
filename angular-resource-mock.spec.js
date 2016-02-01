@@ -1,11 +1,12 @@
 describe('ngResourceMock', function() {
-  var $resource, TestResource;
+  var $resource, $rootScope, TestResource;
   var testData = {
     testProperty: 'testValue'
   };
   beforeEach(module('ngResource'));
-  beforeEach(inject(function(_$resource_) {
+  beforeEach(inject(function(_$resource_, _$rootScope_) {
     $resource = _$resource_;
+    $rootScope = _$rootScope_;
   }))
 
   beforeEach(function() {
@@ -116,15 +117,43 @@ describe('ngResourceMock', function() {
 
   });
   describe('resolve', function() {
+    var expectedResult = {
+      test: 'test'
+    };
+    var listener = {
+      success: function(result) {}
+    }
     it('sould resolve the call with given data', function() {
-      var expectedResult = {
-        test: 'test'
-      };
-      TestResource.expectSave(testData).resolve(expectedResult);
+      TestResource.expectSave(testData).and().resolve(expectedResult);
       var actualResult = TestResource.save(testData);
       TestResource.flush();
       expect(angular.equals(actualResult, expectedResult)).toBe(true);
     });
+    it('sould resolve the promise with given data', function() {
+      TestResource.expectSave(testData).and().resolve(expectedResult);
+      spyOn(listener, 'success');
+
+      var actualResult = TestResource.save(testData).$promise.then(listener.success);
+
+      TestResource.flush();
+      $rootScope.$digest();
+      expect(listener.success).toHaveBeenCalled();
+      var actualResult = listener.success.calls.argsFor(0)[0];
+      expect(angular.equals(actualResult, expectedResult)).toBe(true);
+    });
+    it('sould call the callback function with given data', function() {
+      TestResource.expectSave(testData).and().resolve(expectedResult);
+      spyOn(listener, 'success');
+
+      var actualResult = TestResource.save(testData, listener.success);
+
+      TestResource.flush();
+      $rootScope.$digest();
+      expect(listener.success).toHaveBeenCalled();
+      var actualResult = listener.success.calls.argsFor(0)[0];
+      expect(angular.equals(actualResult, expectedResult)).toBe(true);
+    });
+
   });
   describe('mock instance', function() {
     var testInstance;
