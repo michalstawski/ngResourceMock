@@ -14,7 +14,7 @@
     "mocking"
   ],
   "license": "MIT",
-  "homepage": "",
+  "homepage": "https://github.com/michalstawski/ngResourceMock",
   "private": true,
   "ignore": [
     "**/.*",

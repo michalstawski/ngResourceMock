@@ -1,5 +1,6 @@
 ngResourceMock
 =======
+**This software is in the early state of development, please use with caution.**
 Why
 ----
 This project aims to simplify testing of applications that make use of the ngResource. When testing the use of ngResource there are to main approaches: mocking the resource itself or using ```$httpBackend``` to mock the http responses. Both of those approaches have significant drawbacks. Mocking of the resource is quite a tedious task. The same can be said for mocking the http responses. Moreover it crosses the abstraction layer, as we not only test our code, but the ngResource itself. It makes the tests unnecessarily complex and dificult to read.
