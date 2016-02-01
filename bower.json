@@ -5,7 +5,7 @@
   ],
   "version": "0.0.1",
   "description": "Decorator for $resource to enable mocking of the requests.",
-  "main": "ng-resource-mock.js",
+  "main": "angular-resource-mock.js",
   "moduleType": [],
   "keywords": [
     "ngResource",
