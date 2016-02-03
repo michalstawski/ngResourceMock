@@ -1,7 +1,8 @@
 {
-  "name": "ngResourceMock",
+  "name": "ms-angular-resource-mock",
   "authors": [
-    "Michal Stawski"
+    "Michal Stawski",
+    "Pawel Lagan"
   ],
   "version": "0.0.1",
   "description": "Decorator for $resource to enable mocking of the requests.",
@@ -15,7 +16,7 @@
   ],
   "license": "MIT",
   "homepage": "https://github.com/michalstawski/ngResourceMock",
-  "private": true,
+  "private": false,
   "ignore": [
     "**/.*",
     "node_modules",
