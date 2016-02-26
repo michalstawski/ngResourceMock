@@ -37,7 +37,7 @@ describe('ngResourceMock', function() {
   });
   it('should throw error on unmet expectation', function() {
     expect(function() {
-      TestResource.save({})
+      TestResource.save({});
     }).toThrow();
   });
   describe('when', function() {
@@ -122,18 +122,18 @@ describe('ngResourceMock', function() {
     };
     var listener = {
       success: function(result) {}
-    }
-    it('sould resolve the call with given data', function() {
+    };
+    it('should resolve the call with given data', function() {
       TestResource.expectSave(testData).and.resolve(expectedResult);
       var actualResult = TestResource.save(testData);
       TestResource.flush();
       expect(angular.equals(actualResult, expectedResult)).toBe(true);
     });
-    it('sould resolve the promise with given data', function() {
+    it('should resolve the promise with given data', function() {
       TestResource.expectSave(testData).and.resolve(expectedResult);
       spyOn(listener, 'success');
 
-      var actualResult = TestResource.save(testData).$promise.then(listener.success);
+      TestResource.save(testData).$promise.then(listener.success);
 
       TestResource.flush();
       $rootScope.$digest();
@@ -141,11 +141,11 @@ describe('ngResourceMock', function() {
       var actualResult = listener.success.calls.argsFor(0)[0];
       expect(angular.equals(actualResult, expectedResult)).toBe(true);
     });
-    it('sould call the callback function with given data', function() {
+    it('should call the callback function with given data', function() {
       TestResource.expectSave(testData).and.resolve(expectedResult);
       spyOn(listener, 'success');
 
-      var actualResult = TestResource.save(testData, listener.success);
+      TestResource.save(testData, listener.success);
 
       TestResource.flush();
       $rootScope.$digest();
