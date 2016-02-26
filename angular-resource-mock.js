@@ -21,8 +21,8 @@
 			}
 		};
 		//var defaultActions = $delegate.defaults.actions;
-		return function resourceMockProvider(url, paramDefaults, actions, options) {
-			var actions = angular.extend(defaultActions, actions);
+		return function resourceMockProvider(url, paramDefaults, configuredActions, options) {
+			var actions = angular.extend(defaultActions, configuredActions);
 			var defaultConfig = {
 				autoFlush: false,
 				instanceExpectations: true
@@ -47,19 +47,19 @@
 				angular.extend(defaultConfig, config);
 			};
 			ResourceMock.verifyNoOutstandingExpectation = function() {
-				if (this.$expectations.length != 0) {
+				if (this.$expectations.length !== 0) {
 					throw new Error("Unmet expectations");
 				}
-			}
+			};
 			ResourceMock.flush = ResourceMock.prototype.flush = function() {
 				angular.forEach(this.$unresolvedExpectations, function(expectation) {
 					expectation.resolve();
 				});
-			}
+			};
 			angular.forEach(actions, function(action, name) {
 				addWhen(action, name);
 				addExpect(action, name);
-				addMock(action, name)
+				addMock(action, name);
 				addInstanceMock(action, name);
 			});
 
@@ -92,7 +92,7 @@
 						this.$unresolvedExpectations.push(deferredExpectation);
 					}
 					return deferredExpectation.result;
-				}
+				};
 			}
 
 			function addInstanceMock(action, name) {
@@ -102,7 +102,7 @@
 						success = params;
 					}
 					return this[name](params, this, success, error).$promise;
-				}
+				};
 			}
 
 			function expectationFactory(action, name, conditionSetter) {
@@ -115,8 +115,8 @@
 						andFlush: function() {
 							expectation.setFlushed();
 						}
-					}
-					return {
+					};
+					var result = {
 						resolve: function(data) {
 							expectation.setResult(true, data);
 							return resolveResult;
@@ -129,12 +129,11 @@
 							expectation.setResult(true, data);
 							return resolveResult;
 						},
-						and: function() {
-							return this;
-						},
 						doNothing: function() {},
-					}
-				}
+					};
+					result.and = result;
+					return result;
+				};
 			}
 
 			function getMatchingExpectation(name, params, data, instance) {
@@ -189,7 +188,7 @@
 					params: params,
 					success: success,
 					error: error
-				}
+				};
 			}
 
 			function DeferredExpectation(deferred, success, result, data, successCallback, errorCallback) {
@@ -209,7 +208,7 @@
 					if (callback) {
 						callback(result);
 					}
-				}
+				};
 			}
 
 			function Expectation(expectedName, action, expectedParams, expectedData) {
@@ -228,7 +227,7 @@
 						deferredExpectation.resolve();
 					}
 					return deferredExpectation;
-				}
+				};
 
 				function equalsNullable(actual, expected) {
 					if (expected === ResourceMock.undefined && actual !== undefined) {
@@ -253,7 +252,7 @@
 						return false;
 					}
 					return true;
-				}
+				};
 
 				this.setResult = function(success, data) {
 					internalState.resolve = true;
@@ -262,7 +261,7 @@
 				};
 				this.setFlushed = function() {
 					internalState.flush = true;
-				}
+				};
 			}
 
 			function capitalizeFirstLetter(string) {
@@ -270,6 +269,6 @@
 			}
 
 			return ResourceMock;
-		}
+		};
 	});
 })();

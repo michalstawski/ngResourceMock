@@ -124,13 +124,13 @@ describe('ngResourceMock', function() {
       success: function(result) {}
     }
     it('sould resolve the call with given data', function() {
-      TestResource.expectSave(testData).and().resolve(expectedResult);
+      TestResource.expectSave(testData).and.resolve(expectedResult);
       var actualResult = TestResource.save(testData);
       TestResource.flush();
       expect(angular.equals(actualResult, expectedResult)).toBe(true);
     });
     it('sould resolve the promise with given data', function() {
-      TestResource.expectSave(testData).and().resolve(expectedResult);
+      TestResource.expectSave(testData).and.resolve(expectedResult);
       spyOn(listener, 'success');
 
       var actualResult = TestResource.save(testData).$promise.then(listener.success);
@@ -142,7 +142,7 @@ describe('ngResourceMock', function() {
       expect(angular.equals(actualResult, expectedResult)).toBe(true);
     });
     it('sould call the callback function with given data', function() {
-      TestResource.expectSave(testData).and().resolve(expectedResult);
+      TestResource.expectSave(testData).and.resolve(expectedResult);
       spyOn(listener, 'success');
 
       var actualResult = TestResource.save(testData, listener.success);
