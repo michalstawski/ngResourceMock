@@ -13,7 +13,7 @@
   },
   "ignore": {
     "*.spec.js"
-  }
+  },
   "dependencies": {
     "bower": "^1.6.5",
     "jasmine-core": "^2.1.3",
