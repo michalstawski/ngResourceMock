@@ -1,4 +1,5 @@
 (function() {
+	'use strict';
 	var module = angular.module('ngResource');
 	module.decorator('$resource', function($delegate, $q, $rootScope, $timeout) {
 		//TODO: replace with actions from real $resource
@@ -23,13 +24,14 @@
 		//var defaultActions = $delegate.defaults.actions;
 		return function resourceMockProvider(url, paramDefaults, configuredActions, options) {
 			var actions = angular.extend(defaultActions, configuredActions);
-			var defaultConfig = {
+			var config = {
 				autoFlush: false,
 				instanceExpectations: true
 			};
 
-			var ResourceMock = function() {
+			var ResourceMock = function(data) {
 				init.call(this);
+				angular.extend(this, data);
 			};
 			ResourceMock.null = {};
 			ResourceMock.undefined = {};
@@ -43,8 +45,8 @@
 
 			init.call(ResourceMock);
 
-			ResourceMock.setMockingConfiguration = function(config) {
-				angular.extend(defaultConfig, config);
+			ResourceMock.setMockingConfiguration = function(newConfig) {
+				angular.extend(config, newConfig);
 			};
 			ResourceMock.verifyNoOutstandingExpectation = function() {
 				if (this.$expectations.length !== 0) {
@@ -83,9 +85,10 @@
 			}
 
 			function addMock(action, name) {
-				ResourceMock[name] = ResourceMock.prototype[name] = function(a1, a2, a3, a4) {
-					var callArguments = parseArguments(arguments);
-					var expectation = getMatchingExpectation.call(this, name, callArguments.params, callArguments.data);
+				ResourceMock[name] = function() {
+					var callArguments = parseArguments(name, arguments);
+					var instance = config.instanceExpectations ? this : ResourceMock;
+					var expectation = getMatchingExpectation.call(instance, name, callArguments.params, callArguments.data);
 					var deferredExpectation = expectation.execute(name, callArguments.params, callArguments.data,
 						callArguments.success, callArguments.error);
 					if (!deferredExpectation.resolved) {
@@ -97,20 +100,22 @@
 
 			function addInstanceMock(action, name) {
 				ResourceMock.prototype['$' + name] = function(params, success, error) {
+					params = params || {};
 					if (angular.isFunction(params)) {
 						error = success;
 						success = params;
 					}
-					return this[name](params, this, success, error).$promise;
+					return ResourceMock[name].call(this, params, this, success, error).$promise;
 				};
 			}
 
 			function expectationFactory(action, name, conditionSetter) {
-				return function(params, post) {
-					var callArguments = parseArguments(arguments);
+				return function() {
+					var callArguments = parseArguments(name, arguments);
 					var expectation = new Expectation(name, action, callArguments.params,
 						callArguments.data);
-					conditionSetter(this, expectation);
+					var instance = config.instanceExpectations ? this : ResourceMock;
+					conditionSetter(instance, expectation);
 					var resolveResult = {
 						andFlush: function() {
 							expectation.setFlushed();
@@ -122,7 +127,7 @@
 							return resolveResult;
 						},
 						resolveSame: function() { //TODO: might be better to use resolve without params
-							expectation.setResult(true, post || params);
+							expectation.setResult(true, callArguments.data || callArguments.params);
 							return resolveResult;
 						},
 						reject: function(data) {
@@ -151,38 +156,50 @@
 				throw new Error("Unexpeced " + name);
 			}
 
-			function parseArguments(argumentList) {
-				var success, error, data, params;
-				//FIXME not exact copy
-				switch (argumentList.length) {
-					case 4:
-						error = argumentList[3];
-						success = argumentList[2];
-						//fallthrough
-					case 3:
-					case 2:
-						if (angular.isFunction(argumentList[1])) {
-							if (angular.isFunction(argumentList[0])) {
-								success = argumentList[0];
-								error = argumentList[1];
+			function parseArguments(actionName, argumentList) {
+				var hasBody = /^(POST|PUT|PATCH)$/i.test(actions[actionName].method);
+				//Copy from the original
+				var params = {},
+					data, success, error;
+				(function(a1, a2, a3, a4) {
+					/* jshint -W086 */
+					/* (purposefully fall through case statements) */
+					switch (arguments.length) {
+						case 4:
+							error = a4;
+							success = a3;
+							//fallthrough
+						case 3:
+						case 2:
+							if (angular.isFunction(a2)) {
+								if (angular.isFunction(a1)) {
+									success = a1;
+									error = a2;
+									break;
+								}
+
+								success = a2;
+								error = a3;
+								//fallthrough
+							} else {
+								params = a1;
+								data = a2;
+								success = a3;
 								break;
 							}
-							success = argumentList[1];
-							error = argumentList[2];
-							//fallthrough
-						} else {
-							params = argumentList[0];
-							data = argumentList[1];
-							success = argumentList[2];
+						case 1:
+							if (angular.isFunction(a1)) success = a1;
+							else if (hasBody) data = a1;
+							else params = a1;
 							break;
-						}
-					case 1:
-						if (angular.isFunction(argumentList[0])) success = argumentList[0];
-						else data = argumentList[0];
-						break;
-					case 0:
-						break;
-				}
+						case 0:
+							break;
+						default:
+							throw new Error('badargs',
+								"Expected up to 4 arguments [params, data, success, error], got {0} arguments",
+								arguments.length);
+					}
+				}).apply(window, argumentList);
 				return {
 					data: data,
 					params: params,
@@ -191,24 +208,49 @@
 				};
 			}
 
-			function DeferredExpectation(deferred, success, result, data, successCallback, errorCallback) {
-				this.result = result;
-				this.resolve = function() {
-					var callback;
-					angular.extend(result, data);
-					result.$resolved = true;
+			function DeferredExpectation(deferred, success, resultStub, data, successCallback, errorCallback) {
+				this.result = resultStub;
+
+				this.resolve = function(defer) {
+					generateResult();
+					resultStub.$resolved = true;
 					this.resolved = true;
-					if (success) {
-						deferred.resolve(result);
-						callback = successCallback;
-					} else {
-						deferred.reject(result);
-						callback = errorCallback;
-					}
-					if (callback) {
-						callback(result);
-					}
+					resolvePromise();
+					invokeCallback(defer);
 				};
+
+				function invokeCallback(defer) {
+					var callback = success ? successCallback : errorCallback;
+					if (callback) {
+						if (defer) {
+							$timeout(callback, 0, resultStub);
+						} else {
+							callback(resultStub);
+						}
+					}
+				}
+
+				function resolvePromise() {
+					if (success) {
+						deferred.resolve(resultStub);
+					} else {
+						deferred.reject(resultStub);
+					}
+				}
+
+				function generateResult() {
+					if (Array.isArray(resultStub)) {
+						if (!Array.isArray(data)) {
+							throw new Error('Expected result to be an array');
+						}
+						angular.forEach(data, function(value, key) {
+							resultStub[key] = new ResourceMock(value);
+						});
+					} else {
+						angular.extend(resultStub, data);
+					}
+				}
+
 			}
 
 			function Expectation(expectedName, action, expectedParams, expectedData) {
@@ -218,13 +260,14 @@
 						throw new Error("Expectation does not match");
 					}
 					var deferred = $q.defer();
-					var result = action.isArray ? [] : {};
+					var result = action.isArray ? [] : new ResourceMock();
 					result.$promise = deferred.promise;
-					var deferredExpectation = new DeferredExpectation(deferred, internalState.success, result, internalState.data,
+					var deferredExpectation = new DeferredExpectation(deferred, internalState.success, result,
+						internalState.data,
 						success,
 						error);
-					if (internalState.flush) {
-						deferredExpectation.resolve();
+					if (config.autoFlush || internalState.flush) {
+						deferredExpectation.resolve(true);
 					}
 					return deferredExpectation;
 				};

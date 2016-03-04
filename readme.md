@@ -54,3 +54,4 @@ MockedResource.whenSave().resolveSame().andFlush();
 Whishlist
 ---
 * By default the mock should delegate the method calls to the real resource
+* Support for cancelling requests

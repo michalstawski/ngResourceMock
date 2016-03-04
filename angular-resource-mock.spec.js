@@ -1,17 +1,27 @@
 describe('ngResourceMock', function() {
-  var $resource, $rootScope, TestResource;
+  'use strict';
+  var $resource, $rootScope, TestResource, $timeout;
   var testData = {
     testProperty: 'testValue'
   };
+  var expectedResult = {
+    test: 'test'
+  };
+  var listener = {
+    success: function(result) {}
+  };
+
   beforeEach(module('ngResource'));
-  beforeEach(inject(function(_$resource_, _$rootScope_) {
+  beforeEach(inject(function(_$resource_, _$rootScope_, _$timeout_) {
     $resource = _$resource_;
     $rootScope = _$rootScope_;
-  }))
+    $timeout = _$timeout_;
+  }));
 
   beforeEach(function() {
     TestResource = $resource();
-  })
+  });
+
   describe('default actions', function() {
     it('should have default methods', function() {
       expect(angular.isFunction(TestResource.get)).toBe(true);
@@ -114,15 +124,9 @@ describe('ngResourceMock', function() {
     });
   });
   describe('custom actions', function() {
-
+    //TODO
   });
   describe('resolve', function() {
-    var expectedResult = {
-      test: 'test'
-    };
-    var listener = {
-      success: function(result) {}
-    };
     it('should resolve the call with given data', function() {
       TestResource.expectSave(testData).and.resolve(expectedResult);
       var actualResult = TestResource.save(testData);
@@ -159,6 +163,98 @@ describe('ngResourceMock', function() {
     var testInstance;
     beforeEach(function() {
       testInstance = new TestResource();
+    });
+    it('should resolve the call with given data', function() {
+      var result;
+      testInstance.whenSave().resolve(expectedResult);
+      testInstance.$save().then(function(data) {
+        result = data;
+      });
+      testInstance.flush();
+      $rootScope.$digest();
+      expect(angular.equals(result, expectedResult)).toBe(true);
+    });
+    it('should be independent from "class" expectations', function() {
+      var result;
+      TestResource.whenSave().resolve({});
+      testInstance.whenSave().resolve(expectedResult);
+      testInstance.$save().then(function(data) {
+        result = data;
+      });
+      testInstance.flush();
+      $rootScope.$digest();
+      expect(angular.equals(result, expectedResult)).toBe(true);
+    });
+  });
+  describe('configuration', function() {
+    describe('disable instance expectations', function() {
+      it('should resolve instance calls with class expectations', function() {
+        var result;
+        TestResource.setMockingConfiguration({
+          instanceExpectations: false
+        });
+        var testInstance = new TestResource();
+        TestResource.whenSave().resolve(expectedResult).andFlush();
+        testInstance.$save().then(function(data) {
+          result = data;
+        });
+        $rootScope.$digest();
+        expect(angular.equals(result, expectedResult)).toBe(true);
+      });
+    });
+    describe("autoFlush", function() {
+      it('autoFlush should return the value immediately', function() {
+        TestResource.setMockingConfiguration({
+          autoFlush: true
+        });
+        TestResource.whenSave().resolve(expectedResult);
+        var result = TestResource.save(testData);
+        expect(angular.equals(result, expectedResult)).toBe(true);
+      });
+      it('autoFlush should resolve the promise immediately', function() {
+        TestResource.setMockingConfiguration({
+          autoFlush: true
+        });
+        spyOn(listener, 'success');
+        TestResource.whenSave().resolve(expectedResult);
+        TestResource.save(testData).$promise.then(listener.success);
+        $rootScope.$digest();
+        expect(listener.success).toHaveBeenCalled();
+      });
+      it('autoFlush should call the callback immediately', function() {
+        TestResource.setMockingConfiguration({
+          autoFlush: true
+        });
+        spyOn(listener, 'success');
+        TestResource.whenSave().resolve(expectedResult);
+        TestResource.save(testData, listener.success);
+        $timeout.flush();
+        expect(listener.success).toHaveBeenCalled();
+      });
+    });
+  });
+  describe('array actions', function() {
+    it('result is array', function() {
+      TestResource.whenQuery().resolve([expectedResult]).andFlush();
+      var result = TestResource.query();
+      expect(Array.isArray(result));
+    });
+    it('resolves call with data', function() {
+      TestResource.whenQuery().resolve([expectedResult]).andFlush();
+      var result = TestResource.query();
+      expect(result.length).toBe(1);
+      expect(angular.equals(result[0], expectedResult)).toBe(true);
+    });
+    it('data is a resource instance', function() {
+      TestResource.whenQuery().resolve([expectedResult]).andFlush();
+      var result = TestResource.query();
+      expect(result[0] instanceof TestResource).toBe(true);
+    });
+    it('returned resource instance works', function() {
+      TestResource.whenQuery().resolve([expectedResult]).andFlush();
+      var result = TestResource.query();
+      result[0].whenSave().resolve(expectedResult);
+      result[0].$save();
     });
   });
 });
