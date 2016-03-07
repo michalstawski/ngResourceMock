@@ -1,3 +1,6 @@
+/**
+ * Decorator fot the ngResource to allow easy mocking of the resource.
+ */
 (function() {
 	'use strict';
 	var module = angular.module('ngResource');
@@ -22,6 +25,9 @@
 			}
 		};
 		//var defaultActions = $delegate.defaults.actions;
+		/**
+		 * Factory method for creating the actual resource mock.
+		 */
 		return function resourceMockProvider(url, paramDefaults, configuredActions, options) {
 			var actions = angular.extend(defaultActions, configuredActions);
 			var config = {
@@ -32,13 +38,14 @@
 			var ResourceMock = function(data) {
 				init.call(this);
 				angular.extend(this, data);
+				ResourceMock.$instances.push(this);
 			};
 			ResourceMock.null = {};
 			ResourceMock.undefined = {};
+			ResourceMock.$instances = [];
 
 			function init() {
 				this.$when = {};
-				this.$pendingDefers = [];
 				this.$expectations = [];
 				this.$unresolvedExpectations = [];
 			}
@@ -56,6 +63,13 @@
 			ResourceMock.flush = ResourceMock.prototype.flush = function() {
 				angular.forEach(this.$unresolvedExpectations, function(expectation) {
 					expectation.resolve();
+				});
+			};
+
+			ResourceMock.flushAll = function() {
+				this.flush();
+				angular.forEach(this.$instances, function(instance) {
+					instance.flush();
 				});
 			};
 			angular.forEach(actions, function(action, name) {
@@ -83,7 +97,9 @@
 				};
 				ResourceMock[expectName] = ResourceMock.prototype[expectName] = expectationFactory(action, name, expectSetter);
 			}
-
+			/**
+			 * Adds mocked actions to the resource.
+			 */
 			function addMock(action, name) {
 				ResourceMock[name] = function() {
 					var callArguments = parseArguments(name, arguments);
@@ -92,18 +108,21 @@
 					var deferredExpectation = expectation.execute(name, callArguments.params, callArguments.data,
 						callArguments.success, callArguments.error);
 					if (!deferredExpectation.resolved) {
-						this.$unresolvedExpectations.push(deferredExpectation);
+						instance.$unresolvedExpectations.push(deferredExpectation);
 					}
 					return deferredExpectation.result;
 				};
 			}
-
+			/**
+			 * Adds mocked actions to the resource instance.
+			 */
 			function addInstanceMock(action, name) {
 				ResourceMock.prototype['$' + name] = function(params, success, error) {
 					params = params || {};
 					if (angular.isFunction(params)) {
 						error = success;
 						success = params;
+						params = {};
 					}
 					return ResourceMock[name].call(this, params, this, success, error).$promise;
 				};
@@ -141,7 +160,10 @@
 				};
 			}
 
-			function getMatchingExpectation(name, params, data, instance) {
+			/**
+			 * Check current method invocation against existing expect and when conditions.
+			 */
+			function getMatchingExpectation(name, params, data) {
 				var condition;
 				//check expect conditions
 				if (this.$expectations.length > 0 && this.$expectations[0].matches(name, params, data)) {
@@ -207,7 +229,10 @@
 					error: error
 				};
 			}
-
+			/**
+			 * DeferredExpectation is created for each of the call to the mocked action methods. It is be used internally
+			 * to resolve the results of the calls. It is accomplished by calling the resolve method.			 *
+			 */
 			function DeferredExpectation(deferred, success, resultStub, data, successCallback, errorCallback) {
 				this.result = resultStub;
 
@@ -247,12 +272,16 @@
 							resultStub[key] = new ResourceMock(value);
 						});
 					} else {
-						angular.extend(resultStub, data);
+						angular.merge(resultStub, data);
 					}
 				}
 
 			}
 
+			/**
+			 * Class representing when or expect expectation.
+			 * Both the resource class and instances keep collection of the expectations to match the method calls against.
+			 */
 			function Expectation(expectedName, action, expectedParams, expectedData) {
 				var internalState = {};
 				this.execute = function(name, params, data, success, error) {

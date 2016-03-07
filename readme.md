@@ -41,7 +41,11 @@ The api is similar to the API of the ```$httpBackend```. The mock adds following
   Moreover each of the methods results has ```andFlush()``` method.
 * ```expectAction``` - creates expectation. Similar to ```whenAction```.
 * ```flush``` - flushes all unresolved requests
+* ```flushAll``` - available only on a class object. Flushes all pending requests on the class object and all the instance objects
 * ```verifyNoOutstandingExpectation```
+* ```setMockingConfiguration(config)``` - method used to configure the mock. The config object has following properties:
+  * ```autoFlush``` - default false. Specifies if the mock should automatically flush the results after the method call.
+  * ```instanceExpectations``` - default true, when set each resource instance keeps track of it's expectations. If set to false all expectations are defined on the class, and are common for all instances and for static calls.
 
 The ngResourceMock supports both instance and class usage. When used for instances it remembers and matches expectations per instance.
 

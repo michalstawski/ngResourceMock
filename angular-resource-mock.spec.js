@@ -257,4 +257,67 @@ describe('ngResourceMock', function() {
       result[0].$save();
     });
   });
+  describe('flush', function() {
+    var instanceListener = {
+      success: function() {}
+    };
+    it('flushes multiple requests', function() {
+      TestResource.whenSave().resolve(expectedResult);
+      TestResource.whenSave().resolve(expectedResult);
+      spyOn(listener, 'success');
+
+      TestResource.save(listener.success);
+      TestResource.save(listener.success);
+
+      expect(listener.success).not.toHaveBeenCalled();
+      TestResource.flush();
+      expect(listener.success).toHaveBeenCalledTimes(2);
+    });
+    it('flushes only instance calls', function() {
+      TestResource.whenSave().resolve(expectedResult);
+      var testResource = new TestResource();
+      testResource.whenSave().resolve(expectedResult);
+      spyOn(listener, 'success');
+      spyOn(instanceListener, 'success');
+
+      TestResource.save(listener.success);
+      testResource.$save(instanceListener.success);
+
+      expect(instanceListener.success).not.toHaveBeenCalled();
+      testResource.flush();
+      expect(listener.success).not.toHaveBeenCalled();
+      expect(instanceListener.success).toHaveBeenCalled();
+    });
+    it('flushes only class calls', function() {
+      TestResource.whenSave().resolve(expectedResult);
+      var testResource = new TestResource();
+      testResource.whenSave().resolve(expectedResult);
+      spyOn(listener, 'success');
+      spyOn(instanceListener, 'success');
+
+      TestResource.save(listener.success);
+      testResource.$save(instanceListener.success);
+
+      expect(listener.success).not.toHaveBeenCalled();
+      TestResource.flush();
+      expect(instanceListener.success).not.toHaveBeenCalled();
+      expect(listener.success).toHaveBeenCalled();
+    });
+    it('flush all flushes all calls', function() {
+      TestResource.whenSave().resolve(expectedResult);
+      var testResource = new TestResource();
+      testResource.whenSave().resolve(expectedResult);
+      spyOn(listener, 'success');
+      spyOn(instanceListener, 'success');
+
+      TestResource.save(listener.success);
+      testResource.$save(instanceListener.success);
+
+      expect(listener.success).not.toHaveBeenCalled();
+      expect(instanceListener.success).not.toHaveBeenCalled();
+      TestResource.flushAll();
+      expect(instanceListener.success).toHaveBeenCalled();
+      expect(listener.success).toHaveBeenCalled();
+    });
+  });
 });
