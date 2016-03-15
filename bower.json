@@ -4,7 +4,7 @@
     "Michal Stawski",
     "Pawel Lagan"
   ],
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Decorator for $resource to enable mocking of the requests.",
   "main": "angular-resource-mock.js",
   "moduleType": [],
